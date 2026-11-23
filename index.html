@@ -91,7 +91,7 @@ const CITIES=['طرابلس','بنغازي','مصراتة','زليتن','الخ�
 const CATS=['شقة','بيت','أرض','محل','مزرعة','مكتب','أخرى'];
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3500)};
+const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display="none",7000)};
 const wa=p=>{p=String(p).replace(/\D/g,'');if(p.startsWith('00'))p=p.slice(2);else if(p.startsWith('0'))p='218'+p.slice(1);return p};
 const money=l=>l.price?Number(l.price).toLocaleString('ar-LY')+(l.currency=='USD'?' دولار':' د.ل'):'السعر بالتواصل';
 const opts=(el,arr,first)=>el.innerHTML=(first?`<option value="">${first}</option>`:'')+arr.map(x=>`<option>${x}</option>`).join('');
@@ -99,8 +99,8 @@ opts($('fc'),CITIES,'كل المدن');opts($('fk'),CATS,'كل الأنواع');
 $('hwa').onclick=()=>open('https://wa.me/'+ADMIN_WA,'_blank');
 let items=[],deal='';
 async function load(){
- const {data,error}=await sb.from('listings').select('*').eq('status','approved').order('created_at',{ascending:false});
- if(error){$('grid').innerHTML='<div class="empty">تعذر تحميل العقارات. تأكد من إعداد Supabase.</div>';return}
+ const {data,error}=await sb.from('aqar_listings').select('*').eq('status','approved').order('created_at',{ascending:false});
+ if(error){$('grid').innerHTML='<div class="empty">تعذر تحميل العقارات.<br><small>'+esc(error.message)+'</small></div>';return}
  items=data;render();
 }
 function render(){
@@ -131,8 +131,8 @@ $('send').onclick=async()=>{
  $('send').disabled=true;$('send').textContent='جاري الإرسال...';
  try{
   const urls=[];
-  for(const f of files){const n=crypto.randomUUID()+'.'+(f.name.split('.').pop()||'jpg');const {error}=await sb.storage.from('photos').upload(n,f);if(error)throw error;urls.push(sb.storage.from('photos').getPublicUrl(n).data.publicUrl)}
-  const {error}=await sb.from('listings').insert({deal:g('a_deal'),category:g('a_cat'),city:g('a_city'),area:g('a_area'),price:g('a_price')||null,currency:g('a_cur'),description:g('a_desc'),owner_name:g('a_name'),phone,lat:pos.lat,lng:pos.lng,photos:urls});
+  for(const f of files){const n=crypto.randomUUID()+'.'+(f.name.split('.').pop()||'jpg');const {error}=await sb.storage.from('aqar-photos').upload(n,f);if(error)throw error;urls.push(sb.storage.from('aqar-photos').getPublicUrl(n).data.publicUrl)}
+  const {error}=await sb.from('aqar_listings').insert({deal:g('a_deal'),category:g('a_cat'),city:g('a_city'),area:g('a_area'),price:g('a_price')||null,currency:g('a_cur'),description:g('a_desc'),owner_name:g('a_name'),phone,lat:pos.lat,lng:pos.lng,photos:urls});
   if(error)throw error;
   $('amod').classList.remove('on');toast('وصل طلبك. الإدارة بتتواصل معاك على واتساب.');
  }catch(e){toast('صار خطأ في الإرسال. حاول مرة ثانية.')}
@@ -143,15 +143,16 @@ async function adminUI(){
  $('adm').classList.add('on');
  const {data:{session}}=await sb.auth.getSession();
  if(!session){$('abody').innerHTML='<div class="f"><label>البريد</label><input id="em" type="email"><label>كلمة السر</label><input id="pw" type="password"><button class="btn g" id="lg" style="width:100%;margin-top:12px">دخول</button></div>';
-  $('lg').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('em').value,password:$('pw').value});error?toast('بيانات الدخول غلط'):adminUI()};return}
- const {data}=await sb.from('listings').select('*').order('created_at',{ascending:false});
+  $('lg').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('em').value,password:$('pw').value});error?toast('خطأ: '+error.message):adminUI()};return}
+ const {data,error:qe}=await sb.from('aqar_listings').select('*').order('created_at',{ascending:false});
+ if(qe){$('abody').innerHTML='<div class="note">تم الدخول، لكن تعذر قراءة الطلبات:<br><b>'+esc(qe.message)+'</b></div><button class="btn o" id="lo">تسجيل خروج</button>';$('lo').onclick=async()=>{await sb.auth.signOut();adminUI()};return}
  const used=new Set(data.filter(l=>l.status=='approved'||l.status=='done').map(l=>wa(l.phone))).size;
  const lab={pending:'جديد',approved:'منشور',rejected:'مرفوض',done:'منتهي'};
  $('abody').innerHTML=`<div class="note">المشتركون المعتمدون: <b>${used} / ${FREE}</b> (المجاني)</div>`+data.map(l=>`<div class="adm"><span class="tag">${lab[l.status]}</span><b>${esc(l.category)} لل${esc(l.deal)}</b> - ${esc(l.city)}<div>${money(l)}</div><div class="mut">${esc(l.owner_name)} - ${esc(l.phone)}</div><p>${esc(l.description)}</p><div class="thumbs">${(l.photos||[]).map(p=>`<img src="${esc(p)}" alt="">`).join('')}</div><div class="bt"><button class="btn wa" onclick="open('https://wa.me/${wa(l.phone)}')">واتساب المالك</button><button class="btn g" data-s="approved" data-id="${l.id}">نشر</button><button class="btn o" data-s="done" data-id="${l.id}">تم البيع/الإيجار</button><button class="btn r" data-s="rejected" data-id="${l.id}">رفض</button><button class="btn r" data-del="${l.id}">حذف</button></div></div>`).join('')+'<button class="btn o" id="lo">تسجيل خروج</button>';
  $('abody').onclick=async e=>{const b=e.target.closest('button');if(!b)return;
   if(b.id=='lo'){await sb.auth.signOut();return adminUI()}
-  if(b.dataset.s){await sb.from('listings').update({status:b.dataset.s}).eq('id',b.dataset.id)}
-  else if(b.dataset.del){if(!confirm('حذف نهائي؟'))return;await sb.from('listings').delete().eq('id',b.dataset.del)}else return;
+  if(b.dataset.s){await sb.from('aqar_listings').update({status:b.dataset.s}).eq('id',b.dataset.id)}
+  else if(b.dataset.del){if(!confirm('حذف نهائي؟'))return;await sb.from('aqar_listings').delete().eq('id',b.dataset.del)}else return;
   adminUI();load()};
 }
 if(location.hash=='#admin')adminUI();
