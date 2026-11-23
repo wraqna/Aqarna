@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>عقارك | عقارات ليبيا</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--g:#0e4d45;--g2:#0a3832;--b:#c8913b;--ink:#14201f;--bg:#f2f5f4;--w:#fff;--ln:#d9e0de;--mut:#5d6b69}
+*{box-sizing:border-box;margin:0}
+body{font-family:Tajawal,sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.6}
+header{background:var(--g);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+.logo{font-size:26px;font-weight:800;letter-spacing:0}
+.logo i{font-style:normal;color:var(--b)}
+button,select,input,textarea{font:inherit}
+.btn{border:0;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;background:var(--b);color:#1d1403}
+.btn.g{background:var(--g);color:#fff}.btn.o{background:transparent;border:1.5px solid var(--g);color:var(--g)}
+.btn.wa{background:#1fa855;color:#fff}.btn.r{background:#b3261e;color:#fff}
+.btn:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--b);outline-offset:2px}
+.hero{background:var(--g);color:#fff;padding:8px 16px 22px}
+.hero h1{font-size:24px;font-weight:800;line-height:1.4;margin-bottom:6px}
+.hero p{color:#cfe0dc;font-size:15px}
+.tabs{display:flex;gap:8px;margin-top:14px}
+.tabs button{flex:1;padding:10px 4px;border-radius:10px;border:1.5px solid #ffffff55;background:transparent;color:#fff;font-weight:800;cursor:pointer}
+.tabs button.on{background:#fff;color:var(--g);border-color:#fff}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px}
+.filters select,.filters input,.f input,.f select,.f textarea{width:100%;padding:10px;border:1.5px solid var(--ln);border-radius:10px;background:#fff}
+.count{padding:0 16px 6px;color:var(--mut);font-size:14px}
+.grid{display:grid;gap:12px;padding:0 16px 90px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.card{background:var(--w);border:1px solid var(--ln);border-radius:14px;overflow:hidden;cursor:pointer}
+.card img,.ph{width:100%;height:170px;object-fit:cover;display:block;background:#dfe7e5}
+.card .in{padding:12px}
+.tag{display:inline-block;background:var(--g);color:#fff;border-radius:6px;padding:1px 9px;font-size:13px;font-weight:800;margin-left:6px}
+.price{font-size:20px;font-weight:800;color:var(--g)}
+.mut{color:var(--mut);font-size:14px}
+.empty{grid-column:1/-1;text-align:center;padding:40px 10px;color:var(--mut)}
+.fab{position:fixed;bottom:16px;left:16px;right:16px;max-width:520px;margin:auto;box-shadow:0 6px 20px #0004;padding:14px;font-size:17px;z-index:4}
+.modal{position:fixed;inset:0;background:#000a;z-index:10;display:none;overflow:auto}
+.modal.on{display:block}
+.sheet{background:var(--bg);max-width:640px;margin:0 auto;min-height:100%;padding:16px}
+.sheet h2{font-size:22px;margin-bottom:10px}
+.x{float:left;background:#fff;border:1px solid var(--ln);border-radius:50%;width:38px;height:38px;font-size:20px;cursor:pointer}
+.f label{display:block;font-weight:500;margin:10px 0 4px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#pm,#dm{height:230px;border-radius:12px;border:1px solid var(--ln);margin-top:6px}
+.thumbs{display:flex;gap:6px;overflow-x:auto;margin:6px 0}
+.thumbs img{width:70px;height:56px;object-fit:cover;border-radius:8px;cursor:pointer;flex:none}
+.big{width:100%;height:240px;object-fit:cover;border-radius:12px}
+.note{background:#fff7e6;border:1px solid #ecd49b;border-radius:10px;padding:10px;font-size:14px;margin:10px 0}
+.adm{background:#fff;border:1px solid var(--ln);border-radius:12px;padding:12px;margin-bottom:10px}
+.adm .bt{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.adm .bt .btn{padding:7px 12px;font-size:14px}
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:10px;z-index:30;display:none}
+</style>
+</head>
+<body>
+<header><div class="logo">عقار<i>ك</i></div><button class="btn wa" id="hwa">واتساب الإدارة</button></header>
+<div id="pub">
+<div class="hero"><h1>بيع، إيجار، أو انتفاع. كل عقارات ليبيا في مكان واحد</h1><p>كل عرض تراجعه الإدارة قبل النشر.</p>
+<div class="tabs" id="tabs"><button class="on" data-d="">الكل</button><button data-d="بيع">بيع</button><button data-d="إيجار">إيجار</button><button data-d="انتفاع">انتفاع</button></div></div>
+<div class="filters"><select id="fc"><option value="">كل المدن</option></select><select id="fk"><option value="">كل الأنواع</option></select><input id="fp" type="number" inputmode="numeric" placeholder="أقصى سعر (د.ل)"><select id="fs"><option value="new">الأحدث</option><option value="lo">الأرخص</option><option value="hi">الأغلى</option></select></div>
+<div class="count" id="cnt"></div><div class="grid" id="grid"></div>
+<button class="btn g fab" id="add">اعرض عقارك</button>
+</div>
+
+<div class="modal" id="dmod"><div class="sheet"><button class="x" data-close>×</button><div id="dbody"></div></div></div>
+
+<div class="modal" id="amod"><div class="sheet f"><button class="x" data-close>×</button><h2>اعرض عقارك</h2>
+<div class="note">طلبك يوصل للإدارة، وتتواصل معاك على واتساب وتتأكد من العقار قبل النشر. أول 30 مشترك مجاناً.</div>
+<div class="row"><div><label>نوع العرض</label><select id="a_deal"><option>بيع</option><option>إيجار</option><option>انتفاع</option></select></div><div><label>نوع العقار</label><select id="a_cat"></select></div></div>
+<div class="row"><div><label>المدينة</label><select id="a_city"></select></div><div><label>المنطقة / الحي</label><input id="a_area"></div></div>
+<div class="row"><div><label>السعر</label><input id="a_price" type="number" inputmode="numeric"></div><div><label>العملة</label><select id="a_cur"><option value="LYD">دينار</option><option value="USD">دولار</option></select></div></div>
+<label>وصف مختصر (المساحة، عدد الغرف...)</label><textarea id="a_desc" rows="3"></textarea>
+<div class="row"><div><label>الاسم</label><input id="a_name"></div><div><label>رقم واتساب</label><input id="a_phone" type="tel" inputmode="tel" placeholder="09xxxxxxxx"></div></div>
+<label>الصور (حتى 5)</label><input id="a_ph" type="file" accept="image/*" multiple>
+<label>حدد موقع العقار على الخريطة (اضغط على الخريطة)</label>
+<button class="btn o" id="loc" type="button">استخدم موقعي الحالي</button><div id="pm"></div>
+<button class="btn g" id="send" style="width:100%;margin-top:14px;padding:14px">أرسل الطلب للإدارة</button></div></div>
+
+<div class="modal" id="adm"><div class="sheet"><button class="x" data-close>×</button><h2>لوحة الإدارة</h2><div id="abody"></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SB_URL='ضع_رابط_SUPABASE_هنا',SB_KEY='ضع_مفتاح_anon_هنا',ADMIN_WA='218940510551',FREE=30;
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const CITIES=['طرابلس','بنغازي','مصراتة','زليتن','الخمس','الزاوية','صبراتة','صرمان','غريان','ترهونة','بني وليد','مسلاتة','تاجوراء','زوارة','نالوت','سرت','أجدابيا','البيضاء','المرج','درنة','طبرق','سبها','أوباري','مرزق','غات','الكفرة','أخرى'];
+const CATS=['شقة','بيت','أرض','محل','مزرعة','مكتب','أخرى'];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',3500)};
+const wa=p=>{p=String(p).replace(/\D/g,'');if(p.startsWith('00'))p=p.slice(2);else if(p.startsWith('0'))p='218'+p.slice(1);return p};
+const money=l=>l.price?Number(l.price).toLocaleString('ar-LY')+(l.currency=='USD'?' دولار':' د.ل'):'السعر بالتواصل';
+const opts=(el,arr,first)=>el.innerHTML=(first?`<option value="">${first}</option>`:'')+arr.map(x=>`<option>${x}</option>`).join('');
+opts($('fc'),CITIES,'كل المدن');opts($('fk'),CATS,'كل الأنواع');opts($('a_city'),CITIES);opts($('a_cat'),CATS);
+$('hwa').onclick=()=>open('https://wa.me/'+ADMIN_WA,'_blank');
+let items=[],deal='';
+async function load(){
+ const {data,error}=await sb.from('listings').select('*').eq('status','approved').order('created_at',{ascending:false});
+ if(error){$('grid').innerHTML='<div class="empty">تعذر تحميل العقارات. تأكد من إعداد Supabase.</div>';return}
+ items=data;render();
+}
+function render(){
+ let r=items.filter(l=>(!deal||l.deal==deal)&&(!$('fc').value||l.city==$('fc').value)&&(!$('fk').value||l.category==$('fk').value)&&(!$('fp').value||(l.currency=='LYD'&&l.price<=+$('fp').value)));
+ const s=$('fs').value;if(s=='lo')r.sort((a,b)=>a.price-b.price);if(s=='hi')r.sort((a,b)=>b.price-a.price);
+ $('cnt').textContent=r.length+' عقار';
+ $('grid').innerHTML=r.length?r.map(l=>`<div class="card" tabindex="0" data-id="${l.id}">${l.photos?.[0]?`<img loading="lazy" src="${esc(l.photos[0])}" alt="">`:'<div class="ph"></div>'}<div class="in"><span class="tag">${esc(l.deal)}</span><b>${esc(l.category)}</b><div class="price">${money(l)}</div><div class="mut">${esc(l.city)}${l.area?' - '+esc(l.area):''}</div></div></div>`).join(''):'<div class="empty">ما فيه عقارات بهذي المواصفات. جرب مدينة ثانية، أو اعرض عقارك.</div>';
+}
+['fc','fk','fp','fs'].forEach(i=>$(i).oninput=render);
+$('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;deal=b.dataset.d;[...$('tabs').children].forEach(x=>x.classList.toggle('on',x==b));render()};
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.modal').classList.remove('on'));
+let dmap;
+$('grid').onclick=e=>{const c=e.target.closest('.card');if(!c)return;const l=items.find(x=>x.id==c.dataset.id);
+ $('dbody').innerHTML=`<h2>${esc(l.category)} لل${esc(l.deal)} في ${esc(l.city)}</h2>${l.photos?.[0]?`<img class="big" id="bigp" src="${esc(l.photos[0])}" alt="">`:''}<div class="thumbs">${(l.photos||[]).map(p=>`<img src="${esc(p)}" alt="" onclick="bigp.src=this.src">`).join('')}</div><div class="price">${money(l)}</div><p class="mut">${esc(l.city)}${l.area?' - '+esc(l.area):''}</p><p>${esc(l.description)}</p>${l.lat?'<div id="dm"></div>':''}<button class="btn wa" id="dwa" style="width:100%;margin-top:12px;padding:14px">تواصل واتساب</button>`;
+ $('dmod').classList.add('on');
+ $('dwa').onclick=()=>open('https://wa.me/'+wa(l.phone)+'?text='+encodeURIComponent('السلام عليكم، شفت إعلانك في عقارك ('+l.category+' لل'+l.deal+' في '+l.city+')'),'_blank');
+ if(l.lat){setTimeout(()=>{dmap&&dmap.remove();dmap=L.map('dm').setView([l.lat,l.lng],14);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(dmap);L.marker([l.lat,l.lng]).addTo(dmap)},50)}
+};
+let pmap,pmk,pos=null;
+function setPos(ll){pos=ll;pmk?pmk.setLatLng(ll):pmk=L.marker(ll).addTo(pmap)}
+$('add').onclick=()=>{$('amod').classList.add('on');setTimeout(()=>{if(!pmap){pmap=L.map('pm').setView([32.4,15],6);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(pmap);pmap.on('click',e=>setPos(e.latlng))}pmap.invalidateSize()},80)};
+$('loc').onclick=()=>navigator.geolocation?.getCurrentPosition(p=>{const ll=L.latLng(p.coords.latitude,p.coords.longitude);setPos(ll);pmap.setView(ll,15)},()=>toast('ما قدرنا نحدد موقعك. اضغط على الخريطة.'));
+$('send').onclick=async()=>{
+ const g=i=>$(i).value.trim(),phone=g('a_phone');
+ if(!phone||phone.replace(/\D/g,'').length<9)return toast('اكتب رقم واتساب صحيح');
+ if(!pos)return toast('حدد موقع العقار على الخريطة');
+ const files=[...$('a_ph').files].slice(0,5);if(!files.length)return toast('أضف صورة وحدة على الأقل');
+ $('send').disabled=true;$('send').textContent='جاري الإرسال...';
+ try{
+  const urls=[];
+  for(const f of files){const n=crypto.randomUUID()+'.'+(f.name.split('.').pop()||'jpg');const {error}=await sb.storage.from('photos').upload(n,f);if(error)throw error;urls.push(sb.storage.from('photos').getPublicUrl(n).data.publicUrl)}
+  const {error}=await sb.from('listings').insert({deal:g('a_deal'),category:g('a_cat'),city:g('a_city'),area:g('a_area'),price:g('a_price')||null,currency:g('a_cur'),description:g('a_desc'),owner_name:g('a_name'),phone,lat:pos.lat,lng:pos.lng,photos:urls});
+  if(error)throw error;
+  $('amod').classList.remove('on');toast('وصل طلبك. الإدارة بتتواصل معاك على واتساب.');
+ }catch(e){toast('صار خطأ في الإرسال. حاول مرة ثانية.')}
+ $('send').disabled=false;$('send').textContent='أرسل الطلب للإدارة';
+};
+/* لوحة الإدارة: افتح الرابط مع #admin */
+async function adminUI(){
+ $('adm').classList.add('on');
+ const {data:{session}}=await sb.auth.getSession();
+ if(!session){$('abody').innerHTML='<div class="f"><label>البريد</label><input id="em" type="email"><label>كلمة السر</label><input id="pw" type="password"><button class="btn g" id="lg" style="width:100%;margin-top:12px">دخول</button></div>';
+  $('lg').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('em').value,password:$('pw').value});error?toast('بيانات الدخول غلط'):adminUI()};return}
+ const {data}=await sb.from('listings').select('*').order('created_at',{ascending:false});
+ const used=new Set(data.filter(l=>l.status=='approved'||l.status=='done').map(l=>wa(l.phone))).size;
+ const lab={pending:'جديد',approved:'منشور',rejected:'مرفوض',done:'منتهي'};
+ $('abody').innerHTML=`<div class="note">المشتركون المعتمدون: <b>${used} / ${FREE}</b> (المجاني)</div>`+data.map(l=>`<div class="adm"><span class="tag">${lab[l.status]}</span><b>${esc(l.category)} لل${esc(l.deal)}</b> - ${esc(l.city)}<div>${money(l)}</div><div class="mut">${esc(l.owner_name)} - ${esc(l.phone)}</div><p>${esc(l.description)}</p><div class="thumbs">${(l.photos||[]).map(p=>`<img src="${esc(p)}" alt="">`).join('')}</div><div class="bt"><button class="btn wa" onclick="open('https://wa.me/${wa(l.phone)}')">واتساب المالك</button><button class="btn g" data-s="approved" data-id="${l.id}">نشر</button><button class="btn o" data-s="done" data-id="${l.id}">تم البيع/الإيجار</button><button class="btn r" data-s="rejected" data-id="${l.id}">رفض</button><button class="btn r" data-del="${l.id}">حذف</button></div></div>`).join('')+'<button class="btn o" id="lo">تسجيل خروج</button>';
+ $('abody').onclick=async e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.id=='lo'){await sb.auth.signOut();return adminUI()}
+  if(b.dataset.s){await sb.from('listings').update({status:b.dataset.s}).eq('id',b.dataset.id)}
+  else if(b.dataset.del){if(!confirm('حذف نهائي؟'))return;await sb.from('listings').delete().eq('id',b.dataset.del)}else return;
+  adminUI();load()};
+}
+if(location.hash=='#admin')adminUI();
+addEventListener('hashchange',()=>location.hash=='#admin'&&adminUI());
+load();
+</script>
+</body>
+</html>
