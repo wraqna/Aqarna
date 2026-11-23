@@ -132,9 +132,9 @@ $('send').onclick=async()=>{
  try{
   const urls=[];
   for(const f of files){const n=crypto.randomUUID()+'.'+(f.name.split('.').pop()||'jpg');const {error}=await sb.storage.from('aqar-photos').upload(n,f);if(error)throw error;urls.push(sb.storage.from('aqar-photos').getPublicUrl(n).data.publicUrl)}
-  const {error}=await sb.from('aqar_listings').insert({deal:g('a_deal'),category:g('a_cat'),city:g('a_city'),area:g('a_area'),price:g('a_price')||null,currency:g('a_cur'),description:g('a_desc'),owner_name:g('a_name'),phone,lat:pos.lat,lng:pos.lng,photos:urls});
+  const {data:{session}}=await sb.auth.getSession();const {error}=await sb.from('aqar_listings').insert({status:session?'approved':'pending',deal:g('a_deal'),category:g('a_cat'),city:g('a_city'),area:g('a_area'),price:g('a_price')||null,currency:g('a_cur'),description:g('a_desc'),owner_name:g('a_name'),phone,lat:pos.lat,lng:pos.lng,photos:urls});
   if(error)throw error;
-  $('amod').classList.remove('on');toast('وصل طلبك. الإدارة بتتواصل معاك على واتساب.');
+  $('amod').classList.remove('on');if(session){toast('تم نشر العقار.');load();adminUI()}else toast('وصل طلبك. الإدارة بتتواصل معاك على واتساب.');
  }catch(e){toast('صار خطأ في الإرسال. حاول مرة ثانية.')}
  $('send').disabled=false;$('send').textContent='أرسل الطلب للإدارة';
 };
@@ -148,8 +148,9 @@ async function adminUI(){
  if(qe){$('abody').innerHTML='<div class="note">تم الدخول، لكن تعذر قراءة الطلبات:<br><b>'+esc(qe.message)+'</b></div><button class="btn o" id="lo">تسجيل خروج</button>';$('lo').onclick=async()=>{await sb.auth.signOut();adminUI()};return}
  const used=new Set(data.filter(l=>l.status=='approved'||l.status=='done').map(l=>wa(l.phone))).size;
  const lab={pending:'جديد',approved:'منشور',rejected:'مرفوض',done:'منتهي'};
- $('abody').innerHTML=`<div class="note">المشتركون المعتمدون: <b>${used} / ${FREE}</b> (المجاني)</div>`+data.map(l=>`<div class="adm"><span class="tag">${lab[l.status]}</span><b>${esc(l.category)} لل${esc(l.deal)}</b> - ${esc(l.city)}<div>${money(l)}</div><div class="mut">${esc(l.owner_name)} - ${esc(l.phone)}</div><p>${esc(l.description)}</p><div class="thumbs">${(l.photos||[]).map(p=>`<img src="${esc(p)}" alt="">`).join('')}</div><div class="bt"><button class="btn wa" onclick="open('https://wa.me/${wa(l.phone)}')">واتساب المالك</button><button class="btn g" data-s="approved" data-id="${l.id}">نشر</button><button class="btn o" data-s="done" data-id="${l.id}">تم البيع/الإيجار</button><button class="btn r" data-s="rejected" data-id="${l.id}">رفض</button><button class="btn r" data-del="${l.id}">حذف</button></div></div>`).join('')+'<button class="btn o" id="lo">تسجيل خروج</button>';
+ $('abody').innerHTML=`<div class="note">المشتركون المعتمدون: <b>${used} / ${FREE}</b> (المجاني)</div><button class="btn g" id="ad" style="width:100%;margin-bottom:10px">+ أضف عقار (ينشر مباشرة)</button>${data.length?'':'<div class="empty">ما فيه طلبات لحد الحين. الطلبات الجديدة بتظهر هنا.</div>'}`+data.map(l=>`<div class="adm"><span class="tag">${lab[l.status]}</span><b>${esc(l.category)} لل${esc(l.deal)}</b> - ${esc(l.city)}<div>${money(l)}</div><div class="mut">${esc(l.owner_name)} - ${esc(l.phone)}</div><p>${esc(l.description)}</p><div class="thumbs">${(l.photos||[]).map(p=>`<img src="${esc(p)}" alt="">`).join('')}</div><div class="bt"><button class="btn wa" onclick="open('https://wa.me/${wa(l.phone)}')">واتساب المالك</button><button class="btn g" data-s="approved" data-id="${l.id}">نشر</button><button class="btn o" data-s="done" data-id="${l.id}">تم البيع/الإيجار</button><button class="btn r" data-s="rejected" data-id="${l.id}">رفض</button><button class="btn r" data-del="${l.id}">حذف</button></div></div>`).join('')+'<button class="btn o" id="lo">تسجيل خروج</button>';
  $('abody').onclick=async e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.id=='ad'){$('adm').classList.remove('on');return $('add').click()}
   if(b.id=='lo'){await sb.auth.signOut();return adminUI()}
   if(b.dataset.s){await sb.from('aqar_listings').update({status:b.dataset.s}).eq('id',b.dataset.id)}
   else if(b.dataset.del){if(!confirm('حذف نهائي؟'))return;await sb.from('aqar_listings').delete().eq('id',b.dataset.del)}else return;
