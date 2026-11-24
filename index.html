@@ -38,6 +38,9 @@ button,select,input,textarea{font:inherit}
 .cat{flex:none;width:84px;height:84px;padding:0;border:0;background:none;border-radius:22px;cursor:pointer;opacity:.92}
 .cat img{width:100%;height:100%;display:block;border-radius:20px}
 .cat.on{outline:3px solid var(--b);outline-offset:2px;opacity:1}
+.vb{display:inline-block;background:#1f8f56;color:#fff;border-radius:6px;padding:1px 9px;font-size:13px;font-weight:800;margin-left:6px}
+.vb.b2{margin:4px 0 8px;font-size:14px;padding:3px 12px}
+.lnk{background:none;border:0;color:var(--gd);font-weight:800;text-decoration:underline;cursor:pointer;padding:6px;font-size:14px}
 .filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px}
 .filters select,.filters input,.f input,.f select,.f textarea{width:100%;padding:10px;border:1.5px solid var(--ln);border-radius:10px;background:#fff}
 .count{padding:0 16px 6px;color:var(--mut);font-size:14px}
@@ -75,7 +78,7 @@ button,select,input,textarea{font:inherit}
 <div class="tabs" id="tabs"><button class="on" data-d="">الكل</button><button data-d="بيع">بيع</button><button data-d="إيجار">إيجار</button><button data-d="انتفاع">انتفاع</button></div></div>
 <div class="cats" id="cats"><button class="cat" data-k="بيت" aria-label="منازل"><img src="cat-homes.png" alt="منازل"></button><button class="cat" data-k="شقة" aria-label="شقق"><img src="cat-apartments.png" alt="شقق"></button><button class="cat" data-k="أرض" aria-label="أراضي"><img src="cat-land.png" alt="أراضي"></button><button class="cat" data-k="محل" aria-label="محلات"><img src="cat-shops.png" alt="محلات"></button><button class="cat" data-k="مكتب" aria-label="مكاتب"><img src="cat-offices.png" alt="مكاتب"></button><button class="cat" data-k="مستودع" aria-label="مستودعات"><img src="cat-warehouses.png" alt="مستودعات"></button></div>
 <div class="filters"><select id="fc"><option value="">كل المدن</option></select><select id="fk"><option value="">كل الأنواع</option></select><input id="fp" type="number" inputmode="numeric" placeholder="أقصى سعر (د.ل)"><select id="fs"><option value="new">الأحدث</option><option value="lo">الأرخص</option><option value="hi">الأغلى</option></select></div>
-<div class="count" id="cnt"></div><div class="grid" id="grid"></div>
+<div class="count"><span id="cnt"></span> <button class="lnk" id="reqb">ما لقيت اللي تبيه؟ اطلب عقارك</button></div><div class="grid" id="grid"></div>
 <button class="btn g fab" id="add">اعرض عقارك</button>
 </div>
 
@@ -92,6 +95,15 @@ button,select,input,textarea{font:inherit}
 <label>حدد موقع العقار على الخريطة (اضغط على الخريطة)</label>
 <button class="btn o" id="loc" type="button">استخدم موقعي الحالي</button><div id="pm"></div>
 <button class="btn g" id="send" style="width:100%;margin-top:14px;padding:14px">أرسل الطلب للإدارة</button></div></div>
+
+<div class="modal" id="rmod"><div class="sheet f"><button class="x" data-close>×</button><h2>اطلب عقارك</h2>
+<div class="note">اكتب اللي تدور عليه، والإدارة تتواصل معاك على واتساب لما يتوفر عقار مناسب.</div>
+<div class="row"><div><label>تبي</label><select id="r_deal"><option>بيع</option><option>إيجار</option><option>انتفاع</option></select></div><div><label>نوع العقار</label><select id="r_cat"></select></div></div>
+<div class="row"><div><label>المدينة</label><select id="r_city"></select></div><div><label>الميزانية (اختياري)</label><input id="r_budget" type="number" inputmode="numeric"></div></div>
+<label>العملة</label><select id="r_cur"><option value="LYD">دينار</option><option value="USD">دولار</option></select>
+<label>تفاصيل الطلب (المنطقة، المساحة، عدد الغرف...)</label><textarea id="r_notes" rows="3"></textarea>
+<div class="row"><div><label>الاسم</label><input id="r_name"></div><div><label>رقم واتساب</label><input id="r_phone" type="tel" inputmode="tel" placeholder="09xxxxxxxx"></div></div>
+<button class="btn g" id="rsend" style="width:100%;margin-top:14px;padding:14px">أرسل الطلب</button></div></div>
 
 <div class="modal" id="adm"><div class="sheet"><button class="x" data-close>×</button><h2>لوحة الإدارة</h2><div id="abody"></div></div></div>
 <div class="toast" id="toast"></div>
@@ -115,26 +127,40 @@ let items=[],deal='';
 async function load(){
  const {data,error}=await sb.from('aqar_listings').select('*').eq('status','approved').order('created_at',{ascending:false});
  if(error){$('grid').innerHTML='<div class="empty">تعذر تحميل العقارات.<br><small>'+esc(error.message)+'</small></div>';return}
- items=data;render();
+ items=data;render();openHash();
 }
 function render(){
  let r=items.filter(l=>(!deal||l.deal==deal)&&(!$('fc').value||l.city==$('fc').value)&&(!$('fk').value||l.category==$('fk').value)&&(!$('fp').value||(l.currency=='LYD'&&l.price<=+$('fp').value)));
  const s=$('fs').value;if(s=='lo')r.sort((a,b)=>a.price-b.price);if(s=='hi')r.sort((a,b)=>b.price-a.price);
  $('cnt').textContent=r.length+' عقار';
- $('grid').innerHTML=r.length?r.map(l=>`<div class="card" tabindex="0" data-id="${l.id}">${l.photos?.[0]?`<img loading="lazy" src="${esc(l.photos[0])}" alt="">`:'<div class="ph"></div>'}<div class="in"><span class="tag">${esc(l.deal)}</span><b>${esc(l.category)}</b><div class="price">${money(l)}</div><div class="mut">${esc(l.city)}${l.area?' - '+esc(l.area):''}</div></div></div>`).join(''):'<div class="empty">ما فيه عقارات بهذي المواصفات. جرب مدينة ثانية، أو اعرض عقارك.</div>';
+ $('grid').innerHTML=r.length?r.map(l=>`<div class="card" tabindex="0" data-id="${l.id}">${l.photos?.[0]?`<img loading="lazy" src="${esc(l.photos[0])}" alt="">`:'<div class="ph"></div>'}<div class="in"><span class="tag">${esc(l.deal)}</span>${l.verified?'<span class="vb">✓ موثّق</span>':''}<b>${esc(l.category)}</b><div class="price">${money(l)}</div><div class="mut">${esc(l.city)}${l.area?' - '+esc(l.area):''}</div></div></div>`).join(''):'<div class="empty">ما فيه عقارات بهذي المواصفات.<br>جرب مدينة ثانية، أو خلي الإدارة تدور لك.<br><button class="btn g" id="req2" style="margin-top:12px">اطلب عقارك</button></div>';
 }
 const syncCats=()=>document.querySelectorAll('.cat').forEach(c=>c.classList.toggle('on',c.dataset.k==$('fk').value));
 ['fc','fk','fp','fs'].forEach(i=>$(i).oninput=()=>{syncCats();render()});
 $('cats').onclick=e=>{const c=e.target.closest('.cat');if(!c)return;$('fk').value=$('fk').value==c.dataset.k?'':c.dataset.k;syncCats();render()};
 $('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;deal=b.dataset.d;[...$('tabs').children].forEach(x=>x.classList.toggle('on',x==b));render()};
-document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.modal').classList.remove('on'));
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{b.closest('.modal').classList.remove('on');if(location.hash.startsWith('#p-'))history.replaceState(null,'',location.pathname)});
 let dmap;
-$('grid').onclick=e=>{const c=e.target.closest('.card');if(!c)return;const l=items.find(x=>x.id==c.dataset.id);
- $('dbody').innerHTML=`<h2>${esc(l.category)} لل${esc(l.deal)} في ${esc(l.city)}</h2>${l.photos?.[0]?`<img class="big" id="bigp" src="${esc(l.photos[0])}" alt="">`:''}<div class="thumbs">${(l.photos||[]).map(p=>`<img src="${esc(p)}" alt="" onclick="bigp.src=this.src">`).join('')}</div><div class="price">${money(l)}</div><p class="mut">${esc(l.city)}${l.area?' - '+esc(l.area):''}</p><p>${esc(l.description)}</p>${l.lat?'<div id="dm"></div>':''}<button class="btn wa" id="dwa" style="width:100%;margin-top:12px;padding:14px">تواصل واتساب</button>`;
- $('dmod').classList.add('on');
+function showItem(l){history.replaceState(null,'','#p-'+l.id);
+ $('dbody').innerHTML=`<h2>${esc(l.category)} لل${esc(l.deal)} في ${esc(l.city)}</h2>${l.verified?'<div class="vb b2">✓ موثّق من الإدارة</div>':''}${l.photos?.[0]?`<img class="big" id="bigp" src="${esc(l.photos[0])}" alt="">`:''}<div class="thumbs">${(l.photos||[]).map(p=>`<img src="${esc(p)}" alt="" onclick="bigp.src=this.src">`).join('')}</div><div class="price">${money(l)}</div><p class="mut">${esc(l.city)}${l.area?' - '+esc(l.area):''}</p><p>${esc(l.description)}</p>${l.lat?'<div id="dm"></div>':''}<button class="btn wa" id="dwa" style="width:100%;margin-top:12px;padding:14px">تواصل واتساب</button><button class="btn o" id="dsh" style="width:100%;margin-top:8px">شارك العقار</button>`;
+ $('dmod').classList.add('on');$('dsh').onclick=()=>shareL(l);
  $('dwa').onclick=()=>open('https://wa.me/'+wa(l.phone)+'?text='+encodeURIComponent('السلام عليكم، شفت إعلانك في عقارك ('+l.category+' لل'+l.deal+' في '+l.city+')'),'_blank');
  if(l.lat){setTimeout(()=>{dmap&&dmap.remove();dmap=L.map('dm').setView([l.lat,l.lng],14);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(dmap);L.marker([l.lat,l.lng]).addTo(dmap)},50)}
-};
+}
+function shareL(l){const url=location.origin+location.pathname+'#p-'+l.id,t=l.category+' لل'+l.deal+' في '+l.city+' - '+money(l);
+ if(navigator.share)navigator.share({title:'عقارك',text:t,url}).catch(()=>{});else open('https://wa.me/?text='+encodeURIComponent(t+'\n'+url),'_blank')}
+function openHash(){const m=location.hash.match(/^#p-(.+)$/);if(m){const l=items.find(x=>String(x.id)==m[1]);if(l)showItem(l)}}
+const openReq=()=>$('rmod').classList.add('on');
+$('reqb').onclick=openReq;
+$('grid').onclick=e=>{if(e.target.closest('#req2'))return openReq();const c=e.target.closest('.card');if(!c)return;showItem(items.find(x=>x.id==c.dataset.id))};
+opts($('r_city'),CITIES);opts($('r_cat'),CATS,'أي نوع');
+$('rsend').onclick=async()=>{const g=i=>$(i).value.trim(),phone=g('r_phone');
+ if(phone.replace(/\D/g,'').length<9)return toast('اكتب رقم واتساب صحيح');
+ $('rsend').disabled=true;
+ const {error}=await sb.from('aqar_requests').insert({deal:g('r_deal'),category:g('r_cat'),city:g('r_city'),budget:g('r_budget')||null,currency:g('r_cur'),notes:g('r_notes'),name:g('r_name'),phone});
+ $('rsend').disabled=false;
+ if(error)return toast('صار خطأ: '+error.message);
+ $('rmod').classList.remove('on');toast('وصل طلبك. الإدارة بتتواصل معاك لما يتوفر عقار مناسب.')};
 let pmap,pmk,pos=null;
 function setPos(ll){pos=ll;pmk?pmk.setLatLng(ll):pmk=L.marker(ll).addTo(pmap)}
 $('add').onclick=()=>{$('amod').classList.add('on');setTimeout(()=>{if(!pmap){pmap=L.map('pm').setView([32.4,15],6);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(pmap);pmap.on('click',e=>setPos(e.latlng))}pmap.invalidateSize()},80)};
@@ -164,16 +190,22 @@ async function adminUI(){
  if(qe){$('abody').innerHTML='<div class="note">تم الدخول، لكن تعذر قراءة الطلبات:<br><b>'+esc(qe.message)+'</b></div><button class="btn o" id="lo">تسجيل خروج</button>';$('lo').onclick=async()=>{await sb.auth.signOut();adminUI()};return}
  const used=new Set(data.filter(l=>l.status=='approved'||l.status=='done').map(l=>wa(l.phone))).size;
  const lab={pending:'جديد',approved:'منشور',rejected:'مرفوض',done:'منتهي'};
- $('abody').innerHTML=`<div class="note">المشتركون المعتمدون: <b>${used} / ${FREE}</b> (المجاني)</div><button class="btn g" id="ad" style="width:100%;margin-bottom:10px">+ أضف عقار (ينشر مباشرة)</button>${data.length?'':'<div class="empty">ما فيه طلبات لحد الحين. الطلبات الجديدة بتظهر هنا.</div>'}`+data.map(l=>`<div class="adm"><span class="tag">${lab[l.status]}</span><b>${esc(l.category)} لل${esc(l.deal)}</b> - ${esc(l.city)}<div>${money(l)}</div><div class="mut">${esc(l.owner_name)} - ${esc(l.phone)}</div><p>${esc(l.description)}</p><div class="thumbs">${(l.photos||[]).map(p=>`<img src="${esc(p)}" alt="">`).join('')}</div><div class="bt"><button class="btn wa" onclick="open('https://wa.me/${wa(l.phone)}')">واتساب المالك</button><button class="btn g" data-s="approved" data-id="${l.id}">نشر</button><button class="btn o" data-s="done" data-id="${l.id}">تم البيع/الإيجار</button><button class="btn r" data-s="rejected" data-id="${l.id}">رفض</button><button class="btn r" data-del="${l.id}">حذف</button></div></div>`).join('')+'<button class="btn o" id="lo">تسجيل خروج</button>';
+ const {data:rq}=await sb.from('aqar_requests').select('*').order('created_at',{ascending:false});
+ const rl=(rq||[]).filter(r=>r.status!='done');
+ const reqHtml=rl.length?`<h3 style="margin:10px 0 6px">طلبات العقارات (${rl.length})</h3>`+rl.map(r=>`<div class="adm"><span class="tag">طلب</span><b>${esc(r.category||'أي نوع')} لل${esc(r.deal)}</b> - ${esc(r.city)}<div>${r.budget?'الميزانية: '+Number(r.budget).toLocaleString('ar-LY')+(r.currency=='USD'?' دولار':' د.ل'):'بدون ميزانية'}</div><div class="mut">${esc(r.name)} - ${esc(r.phone)}</div><p>${esc(r.notes)}</p><div class="bt"><button class="btn wa" onclick="open('https://wa.me/${wa(r.phone)}')">واتساب</button><button class="btn g" data-rs="done" data-id="${r.id}">تم</button><button class="btn r" data-rdel="${r.id}">حذف</button></div></div>`).join(''):'';
+ $('abody').innerHTML=`<div class="note">المشتركون المعتمدون: <b>${used} / ${FREE}</b> (المجاني)</div><button class="btn g" id="ad" style="width:100%;margin-bottom:10px">+ أضف عقار (ينشر مباشرة)</button>${reqHtml}${data.length?'':'<div class="empty">ما فيه طلبات لحد الحين. الطلبات الجديدة بتظهر هنا.</div>'}`+data.map(l=>`<div class="adm"><span class="tag">${lab[l.status]}</span>${l.verified?'<span class="vb">✓ موثّق</span>':''}<b>${esc(l.category)} لل${esc(l.deal)}</b> - ${esc(l.city)}<div>${money(l)}</div><div class="mut">${esc(l.owner_name)} - ${esc(l.phone)}</div><p>${esc(l.description)}</p><div class="thumbs">${(l.photos||[]).map(p=>`<img src="${esc(p)}" alt="">`).join('')}</div><div class="bt"><button class="btn wa" onclick="open('https://wa.me/${wa(l.phone)}')">واتساب المالك</button><button class="btn g" data-s="approved" data-id="${l.id}">نشر</button><button class="btn o" data-v="${l.verified?0:1}" data-id="${l.id}">${l.verified?'إلغاء التوثيق':'توثيق ✓'}</button><button class="btn o" data-s="done" data-id="${l.id}">تم البيع/الإيجار</button><button class="btn r" data-s="rejected" data-id="${l.id}">رفض</button><button class="btn r" data-del="${l.id}">حذف</button></div></div>`).join('')+'<button class="btn o" id="lo">تسجيل خروج</button>';
  $('abody').onclick=async e=>{const b=e.target.closest('button');if(!b)return;
   if(b.id=='ad'){$('adm').classList.remove('on');return $('add').click()}
   if(b.id=='lo'){await sb.auth.signOut();return adminUI()}
+  if(b.dataset.rs){await sb.from('aqar_requests').update({status:b.dataset.rs}).eq('id',b.dataset.id);return adminUI()}
+  if(b.dataset.rdel){if(!confirm('حذف الطلب؟'))return;await sb.from('aqar_requests').delete().eq('id',b.dataset.rdel);return adminUI()}
+  if(b.dataset.v!==undefined){await sb.from('aqar_listings').update({verified:b.dataset.v=='1'}).eq('id',b.dataset.id);adminUI();load();return}
   if(b.dataset.s){await sb.from('aqar_listings').update({status:b.dataset.s}).eq('id',b.dataset.id)}
   else if(b.dataset.del){if(!confirm('حذف نهائي؟'))return;await sb.from('aqar_listings').delete().eq('id',b.dataset.del)}else return;
   adminUI();load()};
 }
 if(location.hash=='#admin')adminUI();
-addEventListener('hashchange',()=>location.hash=='#admin'&&adminUI());
+addEventListener('hashchange',()=>{if(location.hash=='#admin')adminUI();else openHash()});
 load();
 </script>
 </body>
